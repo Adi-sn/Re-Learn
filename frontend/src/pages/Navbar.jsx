@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -9,6 +10,8 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 const Navbar = ({ theme, toggleTheme }) => {
+  const navigate = useNavigate();
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
@@ -37,21 +40,22 @@ const Navbar = ({ theme, toggleTheme }) => {
           <Button
             color="inherit"
             className="font-space-mono space-mono-regular"
-            sx={{ mx: 1 }} // Adjusted margin for spacing
+            sx={{ mx: 1 }}
+            onClick={() => navigate('/login')}
           >
             Login
           </Button>
           <Button
             color="inherit"
             className="font-space-mono space-mono-regular"
-            sx={{ mx: 1 }} // Adjusted margin for spacing
+            sx={{ mx: 1 }}
           >
             Sign Up
           </Button>
           <Button
             variant="contained"
             sx={{
-              mx: 1, // Margin to separate from other buttons
+              mx: 1,
               bgcolor: '#38bdf8', // Tailwind sky-400
               color: 'white',
               fontFamily: 'monospace',
@@ -65,7 +69,7 @@ const Navbar = ({ theme, toggleTheme }) => {
             color="inherit"
             onClick={toggleTheme}
             className="font-space-mono"
-            sx={{ mx: 1 }} // Margin to separate from DEMO button
+            sx={{ mx: 1 }}
           >
             {theme === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>

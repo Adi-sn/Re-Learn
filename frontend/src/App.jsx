@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from "react";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Navbar from "./pages/Navbar";
+import Login from "./pages/Login";
 import BlurText from "./components/BlurText";
 
 const App = () => {
@@ -29,24 +31,34 @@ const App = () => {
   }, []);
 
   return (
-    <div className={`font-space-mono min-h-screen flex flex-col ${theme === 'dark' ? 'dark' : ''}`}>
-      <Navbar theme={theme} toggleTheme={toggleTheme} />
-      <div className="flex-1 flex flex-col items-center justify-center pt-28">
-        <div className="text-center mt-[-70vh]">
-          <p className="space-mono-regular text-lg">Start learning with</p>
-          <BlurText
-            text="RE-LEARN"
-            delay={150}
-            animateBy="words"
-            direction="top"
-            onAnimationComplete={handleAnimationComplete}
-            className="space-mono-bold text-8xl"
+    <Router>
+      <div className={`font-space-mono min-h-screen flex flex-col ${theme === 'dark' ? 'dark' : ''}`}>
+        <Navbar theme={theme} toggleTheme={toggleTheme} />
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <div className="flex-1 flex flex-col items-center justify-center pt-28">
+                <div className="text-center mt-[-70vh]">
+                  <p className="space-mono-regular text-lg">Start learning with</p>
+                  <BlurText
+                    text="RE-LEARN"
+                    delay={150}
+                    animateBy="words"
+                    direction="top"
+                    onAnimationComplete={handleAnimationComplete}
+                    className="space-mono-bold text-8xl"
+                  />
+                </div>
+                <p className="space-mono-regular-italic"></p>
+                <Home />
+              </div>
+            }
           />
-        </div>
-        <p className="space-mono-regular-italic"></p>
-        <Home />
+          <Route path="/login" element={<Login theme={theme} />} />
+        </Routes>
       </div>
-    </div>
+    </Router>
   );
 }
 
