@@ -38,7 +38,7 @@ async def chat_interface(user_input_text, audio_in, chat_history, convo_manager,
     feedback = response.get('feedback', {})
     
     if convo_manager.survey_state['stage'] == 'complete':
-        ai_audio_reply = audio_output(ai_text_reply)
+        ai_audio_reply = audio_output(ai_text_reply, convo_manager.cefr_level)
         chat_history.append((user_text, ai_text_reply))
         return ai_audio_reply, chat_history, convo_manager, feedback.get('correction', ''), feedback.get('explanation', '¡Buen trabajo!'), convo_manager.cefr_level, gr.update(visible=False), gr.update(visible=True)
     else:

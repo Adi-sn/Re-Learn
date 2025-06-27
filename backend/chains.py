@@ -33,7 +33,7 @@ llm = ChatGoogleGenerativeAI(
 
 corrector_prompt_template = """
 You are an expert language analysis AI. Your task is to analyze a single sentence from a language learner and provide concise, helpful feedback in JSON format.
-The user is learning Malayalam. Analyze the following sentence: "{user_input}"
+The user is learning English and their current CEFR level is {cefr_level}. Analyze the following sentence: "{user_input}"
 
 Your response MUST be a valid JSON object with two keys: 'correction' and 'explanation'.
 - 'correction': Provide a more natural or grammatically correct version of the sentence. If the sentence is perfect, say "".
@@ -56,7 +56,7 @@ def create_lesson_chain(lesson_id: str, cefr_level: str = "A1"):
     roleplayer_chain = roleplayer_prompt | llm | StrOutputParser()
 
     combined_chain = RunnableParallel(
-        feedback=itemgetter("user_input") | corrector_chain,
+        feedback=RunnablePassthrough.assign(cefr_level=lambda x: cefr_level) | corrector_chain,
         reply=RunnablePassthrough.assign(cefr_level=lambda x: cefr_level) | roleplayer_chain
     )
     return combined_chain
@@ -76,7 +76,20 @@ def audio_input(filepath: str) -> str:
         print(f"Error during transcription: {e}")
         return ""
 
-def audio_output(text: str) -> IO[bytes]:
+def audio_output(text: str, cefr_level: str = "B2") -> IO[bytes]:
+    # Map CEFR level to speech speed (ElevenLabs speed: 0.5 is faster, 1.5 is slower)
+    speed_mapping = {
+        "A1": 0.7,  # Very slow
+        "A2": 0.8,  # Slower
+        "B1": 0.9,  # Slightly slower
+        "B2": 1.0,  # Normal
+        "C1": 1.1,  # Slightly faster
+        "C2": 1.2   # Faster
+    }
+    
+    # Default to normal speed if level is not found
+    speech_speed = speed_mapping.get(cefr_level, 1.0)
+
     response = elevenlabs.text_to_speech.stream(
         voice_id="19STyYD15bswVz51nqLf",
         output_format="mp3_22050_32",
@@ -87,7 +100,7 @@ def audio_output(text: str) -> IO[bytes]:
             similarity_boost=1.0,
             style=0.0,
             use_speaker_boost=True,
-            speed=1.0,
+            speed=speech_speed,
         ),
     )
     #audio_stream = BytesIO()
