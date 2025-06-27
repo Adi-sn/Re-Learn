@@ -1,13 +1,11 @@
-# survey.py
 
 import os
-from typing import Literal, Dict, Any
+from typing import Literal, Dict, Any, List
 
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
-# CHANGED: Imported from pydantic v2 directly, as recommended by the warning.
 from pydantic import BaseModel, Field
 
 # --- Configuration ---
@@ -16,21 +14,53 @@ load_dotenv()
 if "GOOGLE_API_KEY" not in os.environ:
     raise ValueError("GOOGLE_API_KEY not found in .env file.")
 
-# --- 1. Define the Structured Output (Pydantic Models) ---
+# --- 1. Define Questions and Structured Output Models ---
+
+TARGET_LANGUAGE = "English"
+
+# MODIFIED: Questions have been updated to be more general and non-technical.
+CEFR_QUESTIONS: List[Dict[str, str]] = [
+    {
+        "level": "A1",
+        "question": "To begin, please introduce yourself. What is your name and where are you from?"
+    },
+    {
+        "level": "A2",
+        "question": "Thank you. Now, please describe your favorite season. What is the weather like and what do you enjoy doing during that time?"
+    },
+    {
+        "level": "B1",
+        "question": "Next, tell me about a skill you would like to learn in the future. Why do you want to learn it and how would you start?"
+    },
+    {
+        "level": "B2",
+        "question": "Let's move to a more detailed topic. What are the most important qualities of a good friend? Please explain your viewpoint with supporting reasons."
+    },
+    {
+        "level": "C1",
+        "question": "Now for a complex subject. 'It is more important to be happy than to be successful.' Discuss this statement, presenting arguments for and against."
+    },
+    {
+        "level": "C2",
+        "question": "Finally, a question requiring abstract thought. Analyze the relationship between individual freedom and societal responsibility. How should a community balance the rights of a person with the needs of the group?"
+    }
+]
 
 class Analysis(BaseModel):
-    """The detailed analysis of the user's language skills."""
-    grammar_score: int = Field(description="An integer score from 1 (many errors) to 5 (perfect).")
-    vocabulary_score: int = Field(description="An integer score from 1 (very limited) to 5 (varied).")
-    complexity_score: int = Field(description="An integer score from 1 (very simple) to 5 (compound sentences).")
-    coherence_score: int = Field(description="An integer score from 1 (incoherent) to 5 (very clear).")
+    """The detailed analysis of the user's language skills based on all answers."""
+    grammar_score: int = Field(description="Score 1-5 for grammar (1=many errors, 5=flawless).")
+    vocabulary_score: int = Field(description="Score 1-5 for vocabulary (1=limited, 5=wide and precise).")
+    complexity_score: int = Field(description="Score 1-5 for sentence complexity (1=simple, 5=varied and complex).")
+    coherence_score: int = Field(description="Score 1-5 for coherence (1=unclear, 5=logical and well-structured).")
 
 class AssessmentResult(BaseModel):
-    """The final assessment result in a structured format."""
+    """The final holistic assessment result in a structured format."""
     analysis: Analysis
-    feedback_for_user: str = Field(description="A short, encouraging, and constructive feedback sentence to show the user.")
-    determined_cefr_level: Literal["A1", "A2", "B1", "B2", "C1", "C2"] = Field(description="A single string: 'A1', 'A2', 'B1', 'B2', 'C1' or 'C2'.")
+    threshold_analysis: str = Field(description="A brief explanation of the pass/fail decision, stating the highest CEFR level the user successfully passed and where their proficiency broke down.")
+    feedback_for_user: str = Field(description="A holistic, encouraging, and constructive feedback summary based on all their answers.")
+    determined_cefr_level: Literal["A1", "A2", "B1", "B2", "C1", "C2"] = Field(description="The final, overall determined CEFR level (A1 to C2) based on the pass/fail threshold analysis.")
     assessment_complete: bool = Field(description="A boolean flag, should always be true upon completion.")
+
 
 # --- 2. Create the LangChain Components ---
 
@@ -38,22 +68,21 @@ model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.5)
 parser = PydanticOutputParser(pydantic_object=AssessmentResult)
 
 EVALUATOR_PROMPT_TEMPLATE = """
-You are an expert language proficiency evaluator for the {target_language} language.
-Your task is to analyze the user's response and determine their proficiency level according to the CEFR scale (A1, A2, B1, B2, C1, C2). Here A1 denotes the most beginner level and C2 denotes the most advanced level.
-You are supposed to make strict evaluations based on the user's response to a specific question about their language skills.
+You are a strict, impartial, and highly-calibrated CEFR examiner for the English language. Your task is to assign a single, accurate CEFR grade (A1 to C2) by analyzing a user's full transcript.
 
-User's Self-Assessed Level: {self_assessed_level}
-The question you asked the user was: "{question_asked}"
-The user's response is:
+**Your Evaluation Mandate - The Pass/Fail Threshold:**
+
+1.  **Review Holistically:** Read the entire transcript from A1 to C2. Do not evaluate answers in isolation.
+2.  **Define a "Pass":** A user "passes" a level if their response successfully achieves the communicative goal of the question for that level, with language quality that is generally characteristic of that level or higher. Minor errors are acceptable at lower levels.
+3.  **Identify the Breaking Point:** Pinpoint the CEFR level where the user's linguistic ability is no longer sufficient to meet the demands of the question. This is their "fail" point. Look for significant degradation in grammar, vocabulary precision, sentence structure, or coherence.
+4.  **Assign the Final Grade:** The user's final grade is the **highest level they successfully passed**. For example, a user who passes B1 but fails the B2 task MUST be graded B1. A user who attempts the C1 question with many B2-level errors should be graded B1 or B2, depending on their overall consistency. Do not give credit for simply attempting a high-level question.
+
+**Transcript for Evaluation:**
 ---
-{user_response}
+{transcript}
 ---
 
-Analyze the user's response based on the following criteria:
-1.  **Grammatical Accuracy:** Are there errors in verb conjugation, word order, articles, etc.?
-2.  **Vocabulary Range:** Is the vocabulary basic and repetitive, or does it show some variety?
-3.  **Sentence Complexity:** Are the sentences very simple (e.g., "I like dog") or do they show some structure (e.g., "I like dogs because they are friendly")?
-4.  **Coherence:** Is the message understandable, even if there are errors?
+Provide the final structured output.
 
 {format_instructions}
 """
@@ -65,74 +94,81 @@ prompt = ChatPromptTemplate.from_template(
 
 evaluator_chain = prompt | model | parser
 
+
 # --- 3. Define the Assessment Flow & State Management ---
 
-TARGET_LANGUAGE = "English"
-
 def get_initial_state() -> Dict[str, Any]:
-    """Returns the initial state for a new conversation."""
-    initial_message = f"""Welcome! I'm here to help you practice {TARGET_LANGUAGE}.
-To get started, how comfortable do you feel with it? Are you a complete beginner, do you know a few words and phrases, or are you somewhere in the early intermediate stage?"""
+    """Returns the initial state for a new sequential assessment."""
+    initial_message = f"""Welcome to the {TARGET_LANGUAGE} proficiency assessment.
+I will ask you a series of {len(CEFR_QUESTIONS)} questions, from beginner (A1) to advanced (C2). Please answer each one to the best of your ability.
+Press Enter or send a message to begin."""
     
     return {
-        "stage": "self_assessment",
-        "target_language": TARGET_LANGUAGE,
-        "self_assessed_level": None,
+        "stage": "welcome",
+        "question_index": 0,
+        "answers": [],
         "final_result": None,
         "bot_message": initial_message
     }
 
 def process_turn(user_input: str, current_state: Dict[str, Any]) -> Dict[str, Any]:
     """
-    Processes a single turn of the conversation.
+    Processes a single turn of the sequential conversation.
     This is the core logic function, completely decoupled from the UI.
     """
     new_state = current_state.copy()
-    
-    # --- Stage 1: Self-Assessment ---
-    if new_state['stage'] == 'self_assessment':
-        new_state['self_assessed_level'] = user_input
-        new_state['bot_message'] = f"Great! Let's start with a simple one. How do you say 'friend' in {TARGET_LANGUAGE}?"
-        new_state['stage'] = 'guided_question_vocab'
+    stage = new_state.get('stage')
 
-    # --- Stage 2: Guided, Scoped Questions ---
-    elif new_state['stage'] == 'guided_question_vocab':
-        new_state['bot_message'] = f"Okay, now how would you say 'I am learning' in {TARGET_LANGUAGE}?"
-        new_state['stage'] = 'guided_question_grammar'
+    if stage == 'complete':
+        new_state['bot_message'] = "The assessment is complete. You can clear the chat to start a new assessment."
+        return new_state
 
-    elif new_state['stage'] == 'guided_question_grammar':
-        new_state['bot_message'] = f"Awesome. Now, try to tell me what you had for breakfast this morning in {TARGET_LANGUAGE}. Don't worry about perfection, just try your best!"
-        new_state['stage'] = 'evaluation'
+    # Store the previous answer if we are in the middle of the assessment
+    if stage == 'assessment_in_progress':
+        new_state['answers'].append(user_input)
 
-    # --- Stage 3: Open-Ended Conversational Prompt & Evaluation ---
-    elif new_state['stage'] == 'evaluation':
-        question_asked = f"Tell me what you had for breakfast this morning in {TARGET_LANGUAGE}."
+    # Check if there are more questions to ask
+    if new_state['question_index'] < len(CEFR_QUESTIONS):
+        question_data = CEFR_QUESTIONS[new_state['question_index']]
+        new_state['bot_message'] = f"**Question {new_state['question_index'] + 1}/{len(CEFR_QUESTIONS)} (Level: {question_data['level']})**\n\n{question_data['question']}"
+        new_state['question_index'] += 1
+        new_state['stage'] = 'assessment_in_progress'
+    else:
+        # All questions have been answered, now evaluate
+        new_state['stage'] = 'evaluating'
+        new_state['bot_message'] = "Thank you. All questions are complete. Analyzing your responses against the CEFR framework now..."
+        
+        # Format the full Q&A transcript
+        transcript = ""
+        for i, question_data in enumerate(CEFR_QUESTIONS):
+            question = question_data['question']
+            answer = new_state['answers'][i] if i < len(new_state['answers']) else "(No answer provided)"
+            transcript += f"Question (for CEFR Level {question_data['level']}): {question}\nUser's Answer: {answer}\n\n"
+        
+        # Invoke the evaluation chain
         try:
             assessment_result: AssessmentResult = evaluator_chain.invoke({
-                "target_language": new_state['target_language'],
-                "self_assessed_level": new_state['self_assessed_level'],
-                "question_asked": question_asked,
-                "user_response": user_input
+                "transcript": transcript
             })
             
             new_state['final_result'] = assessment_result.model_dump()
-            feedback = assessment_result.feedback_for_user
             level = assessment_result.determined_cefr_level
+            threshold_info = assessment_result.threshold_analysis
+            feedback = assessment_result.feedback_for_user
             
-            new_state['bot_message'] = f"""{feedback}
-Thanks! That was very helpful. Based on our chat, it looks like we can start with lessons at the {level} level. Ready to begin?
-(Assessment is now complete)"""
+            new_state['bot_message'] = f"""**Assessment Complete**
+
+**Final CEFR Grade:** `{level}`
+
+**Examiner's Note:** {threshold_info}
+
+**Overall Feedback:** {feedback}
+"""
             new_state['stage'] = 'complete'
 
         except Exception as e:
             print(f"An error occurred during evaluation: {e}")
-            new_state['bot_message'] = f"Sorry, I had a little trouble processing that. Let's try one more time. Please tell me about your breakfast in {TARGET_LANGUAGE}."
-
-    elif new_state['stage'] == 'complete':
-        new_state['bot_message'] = "The assessment is complete. You can clear the chat to start a new assessment."
-
-    else:
-        new_state['bot_message'] = "An unexpected error occurred in the state machine."
-        new_state['stage'] = 'complete'
-        
+            new_state['bot_message'] = "Sorry, I encountered an error while analyzing your responses. Please try restarting the assessment."
+            new_state['stage'] = 'error'
+            
     return new_state
