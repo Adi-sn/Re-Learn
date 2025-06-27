@@ -1,4 +1,5 @@
 import * as React from 'react';
+import { useNavigate } from 'react-router-dom';
 import AppBar from '@mui/material/AppBar';
 import Box from '@mui/material/Box';
 import Toolbar from '@mui/material/Toolbar';
@@ -9,6 +10,8 @@ import Brightness4Icon from '@mui/icons-material/Brightness4';
 import Brightness7Icon from '@mui/icons-material/Brightness7';
 
 const Navbar = ({ theme, toggleTheme }) => {
+  const navigate = useNavigate();
+
   return (
     <Box sx={{ flexGrow: 1 }}>
       <AppBar
@@ -36,8 +39,21 @@ const Navbar = ({ theme, toggleTheme }) => {
           <Button
             color="inherit"
             className="font-space-mono space-mono-regular"
+            onClick={() => navigate('/login')}
           >
             Login
+          </Button>
+          <Button
+            color="primary"
+            className="font-space-mono space-mono-regular bg-demo-light dark:bg-demo-dark text-white dark:text-white"
+          >
+            Demo
+          </Button>
+          <Button
+            color="inherit"
+            className="font-space-mono space-mono-regular"
+          >
+            Sign Up
           </Button>
           <IconButton
             color="inherit"
