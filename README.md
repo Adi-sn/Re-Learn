@@ -1,2 +1,2 @@
 # Re-Learn
-Conversational Language Assistant using real world scenarios
+Conversational Language Assistant using real world scenarios.
