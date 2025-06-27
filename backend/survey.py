@@ -8,17 +8,12 @@ from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import PydanticOutputParser
 from pydantic import BaseModel, Field
 
-# --- Configuration ---
+
 load_dotenv()
-
-if "GOOGLE_API_KEY" not in os.environ:
-    raise ValueError("GOOGLE_API_KEY not found in .env file.")
-
-# --- 1. Define Questions and Structured Output Models ---
 
 TARGET_LANGUAGE = "English"
 
-# MODIFIED: Questions have been updated to be more general and non-technical.
+
 CEFR_QUESTIONS: List[Dict[str, str]] = [
     {
         "level": "A1",
@@ -62,8 +57,6 @@ class AssessmentResult(BaseModel):
     assessment_complete: bool = Field(description="A boolean flag, should always be true upon completion.")
 
 
-# --- 2. Create the LangChain Components ---
-
 model = ChatGoogleGenerativeAI(model="gemini-2.0-flash", temperature=0.5)
 parser = PydanticOutputParser(pydantic_object=AssessmentResult)
 
@@ -95,8 +88,6 @@ prompt = ChatPromptTemplate.from_template(
 evaluator_chain = prompt | model | parser
 
 
-# --- 3. Define the Assessment Flow & State Management ---
-
 def get_initial_state() -> Dict[str, Any]:
     """Returns the initial state for a new sequential assessment."""
     initial_message = f"""Welcome to the {TARGET_LANGUAGE} proficiency assessment.
@@ -123,29 +114,25 @@ def process_turn(user_input: str, current_state: Dict[str, Any]) -> Dict[str, An
         new_state['bot_message'] = "The assessment is complete. You can clear the chat to start a new assessment."
         return new_state
 
-    # Store the previous answer if we are in the middle of the assessment
     if stage == 'assessment_in_progress':
         new_state['answers'].append(user_input)
 
-    # Check if there are more questions to ask
     if new_state['question_index'] < len(CEFR_QUESTIONS):
         question_data = CEFR_QUESTIONS[new_state['question_index']]
         new_state['bot_message'] = f"**Question {new_state['question_index'] + 1}/{len(CEFR_QUESTIONS)} (Level: {question_data['level']})**\n\n{question_data['question']}"
         new_state['question_index'] += 1
         new_state['stage'] = 'assessment_in_progress'
     else:
-        # All questions have been answered, now evaluate
         new_state['stage'] = 'evaluating'
         new_state['bot_message'] = "Thank you. All questions are complete. Analyzing your responses against the CEFR framework now..."
         
-        # Format the full Q&A transcript
+
         transcript = ""
         for i, question_data in enumerate(CEFR_QUESTIONS):
             question = question_data['question']
             answer = new_state['answers'][i] if i < len(new_state['answers']) else "(No answer provided)"
             transcript += f"Question (for CEFR Level {question_data['level']}): {question}\nUser's Answer: {answer}\n\n"
         
-        # Invoke the evaluation chain
         try:
             assessment_result: AssessmentResult = evaluator_chain.invoke({
                 "transcript": transcript
