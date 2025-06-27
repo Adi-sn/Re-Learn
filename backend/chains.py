@@ -1,0 +1,118 @@
+import os
+from operator import itemgetter
+from typing import IO
+from io import BytesIO
+
+from langchain.memory import ConversationBufferMemory
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.runnables import RunnableParallel, RunnablePassthrough
+from langchain_core.output_parsers import JsonOutputParser, StrOutputParser
+from langchain_google_genai import ChatGoogleGenerativeAI
+
+from elevenlabs import VoiceSettings
+from elevenlabs.client import ElevenLabs
+
+from sarvamai import SarvamAI
+
+from roleplay_prompts import LESSON_CONFIG
+from dotenv import load_dotenv
+
+load_dotenv()
+
+gemini_api = os.getenv("GEMINI_API_KEY")
+
+elevenlabs = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"),)
+sarvam_api = SarvamAI(api_subscription_key=os.getenv("SARVAM_API_KEY"))
+llm = ChatGoogleGenerativeAI(
+    model="gemini-2.0-flash",
+    temperature=0.7,
+    convert_system_message_to_human=True
+)
+
+corrector_prompt_template = """
+You are an expert language analysis AI. Your task is to analyze a single sentence from a language learner and provide concise, helpful feedback in JSON format.
+The user is learning Malayalam. Analyze the following sentence: "{user_input}"
+
+Your response MUST be a valid JSON object with two keys: 'correction' and 'explanation'.
+- 'correction': Provide a more natural or grammatically correct version of the sentence. If the sentence is perfect, say "".
+- 'explanation': Briefly explain why the change was made or offer a small tip. If no correction was needed, give a compliment.
+
+User input to analyze: "{user_input}"
+Your JSON response:
+"""
+
+corrector_prompt = ChatPromptTemplate.from_template(corrector_prompt_template)
+corrector_chain = corrector_prompt | llm | JsonOutputParser()
+
+def create_lesson_chain(lesson_id: str):
+    if lesson_id not in LESSON_CONFIG:
+        raise ValueError("Invalid lesson ID")
+
+    lesson_config = LESSON_CONFIG[lesson_id]
+    roleplayer_template = lesson_config["roleplayer_prompt_template"]
+    roleplayer_prompt = ChatPromptTemplate.from_template(roleplayer_template)
+    roleplayer_chain = roleplayer_prompt | llm | StrOutputParser()
+
+    combined_chain = RunnableParallel(
+        feedback=itemgetter("user_input") | corrector_chain,
+        reply=RunnablePassthrough() | roleplayer_chain
+    )
+    return combined_chain
+
+def audio_input(filepath: str) -> str:
+    if filepath is None:
+        return ""
+    try:
+        with open(filepath, "rb") as audio_file:
+            response = sarvam_api.speech_to_text.transcribe(
+                file=open(audio_file, "rb"),
+                model="saarika:v2.5"
+            )
+        return response.transcript
+    except Exception as e:
+        print(f"Error during transcription: {e}")
+        return ""
+
+def audio_output(text: str) -> IO[bytes]:
+    response = elevenlabs.text_to_speech.stream(
+        voice_id="pNInz6obpgDQGcFmaJgB",
+        output_format="mp3_22050_32",
+        text=text,
+        model_id="eleven_multilingual_v2",
+        voice_settings=VoiceSettings(
+            stability=0.0,
+            similarity_boost=1.0,
+            style=0.0,
+            use_speaker_boost=True,
+            speed=1.0,
+        ),
+    )
+    audio_stream = BytesIO()
+    for chunk in response:
+        if chunk:
+            audio_stream.write(chunk)
+    audio_stream.seek(0)
+    return audio_stream
+
+
+
+class ConversationManager:
+    def __init__(self, lesson_id: str):
+        self.chain = create_lesson_chain(lesson_id)
+        self.memory = ConversationBufferMemory(return_messages=False)
+
+    async def chat(self, user_input: str):
+        loaded_memory = self.memory.load_memory_variables({})
+        current_history = loaded_memory.get('history', '')
+
+        response = await self.chain.ainvoke({
+            "user_input": user_input,
+            "history": current_history
+        })
+
+        self.memory.save_context(
+            {"input": user_input},
+            {"output": response['reply']}
+        )
+        
+        return response
