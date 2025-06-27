@@ -24,6 +24,7 @@ const Navbar = ({ theme, toggleTheme }) => {
             aria-label="menu"
             sx={{ mr: 2 }}
           >
+            {/* Menu icon can be added here if needed */}
           </IconButton>
           <Typography
             variant="h6"
@@ -36,13 +37,35 @@ const Navbar = ({ theme, toggleTheme }) => {
           <Button
             color="inherit"
             className="font-space-mono space-mono-regular"
+            sx={{ mx: 1 }} // Adjusted margin for spacing
           >
             Login
+          </Button>
+          <Button
+            color="inherit"
+            className="font-space-mono space-mono-regular"
+            sx={{ mx: 1 }} // Adjusted margin for spacing
+          >
+            Sign Up
+          </Button>
+          <Button
+            variant="contained"
+            sx={{
+              mx: 1, // Margin to separate from other buttons
+              bgcolor: '#38bdf8', // Tailwind sky-400
+              color: 'white',
+              fontFamily: 'monospace',
+              fontWeight: 'bold',
+              '&:hover': { bgcolor: '#0ea5e9' }, // Tailwind sky-500
+            }}
+          >
+            DEMO
           </Button>
           <IconButton
             color="inherit"
             onClick={toggleTheme}
             className="font-space-mono"
+            sx={{ mx: 1 }} // Margin to separate from DEMO button
           >
             {theme === 'dark' ? <Brightness7Icon /> : <Brightness4Icon />}
           </IconButton>
@@ -50,6 +73,6 @@ const Navbar = ({ theme, toggleTheme }) => {
       </AppBar>
     </Box>
   );
-}
+};
 
 export default Navbar;

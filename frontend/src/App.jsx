@@ -43,7 +43,7 @@ const App = () => {
             className="space-mono-bold text-8xl"
           />
         </div>
-        <p className="space-mono-regular-italic">This is the main application component.</p>
+        <p className="space-mono-regular-italic"></p>
         <Home />
       </div>
     </div>
