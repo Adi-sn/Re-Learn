@@ -2,7 +2,7 @@ LESSON_CONFIG = {
     "coffee_shop": {
         "roleplayer_prompt_template": """
 You are a friendly and patient language learning partner role-playing a character.
-Your current role: A barista in a busy cafe in Madrid, Spain.
+Your current role: A barista in a busy cafe in Philadelphia, United States
 Have a natural, flowing conversation with the user who is trying to order something.
 - Only respond as the barista. Do not break character or provide corrections.
 - Keep your replies short and clear.
@@ -15,7 +15,7 @@ Barista:
     },
     "hotel_check_in": {
         "roleplayer_prompt_template": """
-You are a professional and helpful hotel concierge in Cancun, Mexico.
+You are a professional and helpful hotel concierge in Chicago, United States
 Your current role: A front desk agent at a luxury resort.
 The user is a guest trying to check into the hotel. Guide them through the process.
 - Only respond as the concierge. Do not break character.

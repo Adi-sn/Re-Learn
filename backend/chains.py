@@ -1,7 +1,8 @@
 import os
 from operator import itemgetter
-from typing import IO
+from typing import IO, Union #Union TBR
 from io import BytesIO
+import tempfile
 
 from langchain.memory import ConversationBufferMemory
 from langchain_core.prompts import ChatPromptTemplate
@@ -24,7 +25,7 @@ gemini_api = os.getenv("GEMINI_API_KEY")
 elevenlabs = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"),)
 sarvam_api = SarvamAI(api_subscription_key=os.getenv("SARVAM_API_KEY"))
 llm = ChatGoogleGenerativeAI(
-    model="gemini-2.0-flash",
+    model="gemini-2.5-flash",
     temperature=0.7,
     convert_system_message_to_human=True
 )
@@ -65,8 +66,9 @@ def audio_input(filepath: str) -> str:
     try:
         with open(filepath, "rb") as audio_file:
             response = sarvam_api.speech_to_text.transcribe(
-                file=open(audio_file, "rb"),
-                model="saarika:v2.5"
+                file=audio_file,
+                model="saarika:v2.5",
+                language_code="en-IN"
             )
         return response.transcript
     except Exception as e:
@@ -75,7 +77,7 @@ def audio_input(filepath: str) -> str:
 
 def audio_output(text: str) -> IO[bytes]:
     response = elevenlabs.text_to_speech.stream(
-        voice_id="pNInz6obpgDQGcFmaJgB",
+        voice_id="19STyYD15bswVz51nqLf",
         output_format="mp3_22050_32",
         text=text,
         model_id="eleven_multilingual_v2",
@@ -87,12 +89,18 @@ def audio_output(text: str) -> IO[bytes]:
             speed=1.0,
         ),
     )
-    audio_stream = BytesIO()
-    for chunk in response:
-        if chunk:
-            audio_stream.write(chunk)
-    audio_stream.seek(0)
-    return audio_stream
+    #audio_stream = BytesIO()
+    #for chunk in response:
+    #    if chunk:
+    #        audio_stream.write(chunk)
+    #audio_stream.seek(0)
+    #return audio_stream
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as temp_file:
+        for chunk in response:
+            if chunk:
+                temp_file.write(chunk)
+                temp_file_path = temp_file.name
+    return temp_file_path
 
 
 
