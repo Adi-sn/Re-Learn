@@ -128,8 +128,11 @@ const HeroSection = styled(Box)(({ theme }) => ({
 }));
 
 const MainTitle = styled(Typography)(({ theme }) => ({
-  fontFamily: '"Playfair Display", serif',
+  fontFamily: '"Bitcount Grid Double", system-ui',
+  fontOpticalSizing: 'auto',
   fontWeight: 700,
+  fontStyle: 'normal',
+  fontVariationSettings: '"slnt" 0, "CRSV" 0.5, "ELSH" 0, "ELXP" 0',
   fontSize: 'clamp(3rem, 8vw, 6rem)',
   textAlign: 'center',
   marginBottom: theme.spacing(3),
