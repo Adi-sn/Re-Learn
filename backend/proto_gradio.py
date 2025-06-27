@@ -8,37 +8,47 @@ from chains import (
     audio_output
 )
 
-async def voice_chat_interface(audio_in, chat_history, convo_manager, selected_lesson):
+async def chat_interface(user_input_text, audio_in, chat_history, convo_manager, selected_lesson):
     """The main function that orchestrates the I/O for the Gradio app."""
     if not selected_lesson:
         error_msg = "Please select a lesson first!"
-        return None, chat_history, convo_manager, error_msg, ""
+        return None, chat_history, convo_manager, error_msg, "", "", "", gr.update(visible=True), gr.update(visible=False)
         
     if convo_manager is None:
         print(f"Creating new ConversationManager for lesson: {selected_lesson}")
         convo_manager = ConversationManager(lesson_id=selected_lesson)
+        # Initial message for the survey
+        initial_survey_message = convo_manager.survey_state['bot_message']
+        chat_history.append((None, initial_survey_message))
+        return None, chat_history, convo_manager, "", "", "", gr.update(visible=True), gr.update(visible=False)
 
-    user_text = audio_input(audio_in)
-    if not user_text:
-        return None, chat_history, convo_manager, "N/A", "N/A"
+    user_text = ""
+    ai_audio_reply = None
+    if convo_manager.survey_state['stage'] != 'complete':
+        user_text = user_input_text
+        if not user_text:
+            return None, chat_history, convo_manager, "N/A", "N/A", "", gr.update(visible=True), gr.update(visible=False)
+    else:
+        user_text = audio_input(audio_in)
+        if not user_text:
+            return None, chat_history, convo_manager, "N/A", "N/A", "", gr.update(visible=False), gr.update(visible=True)
 
     response = await convo_manager.chat(user_text)
     ai_text_reply = response.get('reply', "I'm sorry, I couldn't generate a response.")
     feedback = response.get('feedback', {})
     
-    ai_audio_reply = audio_output(ai_text_reply)
-    
-    chat_history.append((user_text, ai_text_reply))
-    
-    correction = feedback.get('correction', '')
-    explanation = feedback.get('explanation', '¡Buen trabajo!')
-
-    return ai_audio_reply, chat_history, convo_manager, correction, explanation
+    if convo_manager.survey_state['stage'] == 'complete':
+        ai_audio_reply = audio_output(ai_text_reply)
+        chat_history.append((user_text, ai_text_reply))
+        return ai_audio_reply, chat_history, convo_manager, feedback.get('correction', ''), feedback.get('explanation', '¡Buen trabajo!'), convo_manager.cefr_level, gr.update(visible=False), gr.update(visible=True)
+    else:
+        chat_history.append((user_text, ai_text_reply))
+        return None, chat_history, convo_manager, "", "", "", gr.update(visible=True), gr.update(visible=False)
 
 def clear_chat():
     """Resets all UI components and the conversation state."""
     print("Clearing chat state.")
-    return None, None, None, "N/A", "N/A"
+    return None, None, None, "N/A", "N/A", "", gr.update(visible=True), gr.update(visible=False)
 
 def on_lesson_change():
     """Handler to clear chat when a new lesson is selected."""
@@ -56,31 +66,39 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Voice-Based Language Companion") a
                 value="coffee_shop"
             )
             chatbot = gr.Chatbot(label="Conversation Log", height=400, bubble_full_width=False)
-            audio_in = gr.Audio(sources=["microphone"], type="filepath", label="Speak Here")
+            user_input_text = gr.Textbox(label="Type your answer here (for survey)", visible=True)
+            audio_in = gr.Audio(sources=["microphone"], type="filepath", label="Speak Here (for roleplay)", visible=False)
         
         with gr.Column(scale=1):
             audio_out = gr.Audio(label="Companion's Reply", autoplay=True)
             gr.Markdown("## 💡 Instant Feedback")
             correction_box = gr.Textbox(label="Suggested Correction", interactive=False)
             explanation_box = gr.Textbox(label="Explanation", interactive=False, lines=4)
+            cefr_level_display = gr.Textbox(label="CEFR Level", interactive=False)
             clear_button = gr.Button("🗑️ Clear Chat")
 
+    user_input_text.submit(
+        fn=chat_interface,
+        inputs=[user_input_text, audio_in, chatbot, convo_manager_state, lesson_selector],
+        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
+    )
+    
     audio_in.change(
-        fn=voice_chat_interface,
-        inputs=[audio_in, chatbot, convo_manager_state, lesson_selector],
-        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box]
+        fn=chat_interface,
+        inputs=[user_input_text, audio_in, chatbot, convo_manager_state, lesson_selector],
+        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
     )
     
     clear_button.click(
         fn=clear_chat,
         inputs=[],
-        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box]
+        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
     )
     
     lesson_selector.change(
         fn=on_lesson_change,
         inputs=[],
-        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box]
+        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
     )
 
 if __name__ == "__main__":

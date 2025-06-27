@@ -16,11 +16,12 @@ from elevenlabs.client import ElevenLabs
 from sarvamai import SarvamAI
 
 from roleplay_prompts import LESSON_CONFIG
+from survey import get_initial_state, process_turn
 from dotenv import load_dotenv
 
 load_dotenv()
 
-gemini_api = os.getenv("GEMINI_API_KEY")
+gemini_api = os.getenv("GOOGLE_API_KEY")
 
 elevenlabs = ElevenLabs(api_key=os.getenv("ELEVENLABS_API_KEY"),)
 sarvam_api = SarvamAI(api_subscription_key=os.getenv("SARVAM_API_KEY"))
@@ -45,7 +46,7 @@ Your JSON response:
 corrector_prompt = ChatPromptTemplate.from_template(corrector_prompt_template)
 corrector_chain = corrector_prompt | llm | JsonOutputParser()
 
-def create_lesson_chain(lesson_id: str):
+def create_lesson_chain(lesson_id: str, cefr_level: str = "A1"):
     if lesson_id not in LESSON_CONFIG:
         raise ValueError("Invalid lesson ID")
 
@@ -56,7 +57,7 @@ def create_lesson_chain(lesson_id: str):
 
     combined_chain = RunnableParallel(
         feedback=itemgetter("user_input") | corrector_chain,
-        reply=RunnablePassthrough() | roleplayer_chain
+        reply=RunnablePassthrough.assign(cefr_level=lambda x: cefr_level) | roleplayer_chain
     )
     return combined_chain
 
@@ -106,10 +107,25 @@ def audio_output(text: str) -> IO[bytes]:
 
 class ConversationManager:
     def __init__(self, lesson_id: str):
-        self.chain = create_lesson_chain(lesson_id)
+        self.lesson_id = lesson_id
+        self.survey_state = get_initial_state()
+        self.cefr_level = "A1"  # Default level
+        self.chain = None
         self.memory = ConversationBufferMemory(return_messages=False)
 
     async def chat(self, user_input: str):
+        if self.survey_state['stage'] != 'complete':
+            self.survey_state = process_turn(user_input, self.survey_state)
+            if self.survey_state['stage'] == 'complete':
+                self.cefr_level = self.survey_state['final_result']['determined_cefr_level']
+                self.chain = create_lesson_chain(self.lesson_id, self.cefr_level)
+                return {"reply": f"Assessment complete. Your CEFR level is {self.cefr_level}. We can now begin the roleplay. {self.survey_state['bot_message']}"}
+            else:
+                return {"reply": self.survey_state['bot_message']}
+        
+        if not self.chain:
+            self.chain = create_lesson_chain(self.lesson_id, self.cefr_level)
+
         loaded_memory = self.memory.load_memory_variables({})
         current_history = loaded_memory.get('history', '')
 
