@@ -1,0 +1,37 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Set Space Mono as the global font */
+body {
+  font-family: "Space Mono", monospace;
+  font-weight: 400; /* Default to regular */
+  font-style: normal;
+  @apply bg-white text-black; /* Light mode */
+  @apply dark:bg-gray-900 dark:text-white; /* Dark mode */
+}
+
+/* Provided Space Mono classes */
+.space-mono-regular {
+  font-family: "Space Mono", monospace;
+  font-weight: 400;
+  font-style: normal;
+}
+
+.space-mono-bold {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-style: normal;
+}
+
+.space-mono-regular-italic {
+  font-family: "Space Mono", monospace;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.space-mono-bold-italic {
+  font-family: "Space Mono", monospace;
+  font-weight: 700;
+  font-style: italic;
+}
