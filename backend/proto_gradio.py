@@ -3,35 +3,30 @@ import nest_asyncio
 
 from chains import (
     ConversationManager,
-    LESSON_CONFIG,
     audio_input,
     audio_output
 )
 
-async def chat_interface(user_input_text, audio_in, chat_history, convo_manager, selected_lesson):
+async def chat_interface(user_input_text, audio_in, chat_history, convo_manager):
     """The main function that orchestrates the I/O for the Gradio app."""
-    if not selected_lesson:
-        error_msg = "Please select a lesson first!"
-        return None, chat_history, convo_manager, error_msg, "", "", "", gr.update(visible=True), gr.update(visible=False)
-        
     if convo_manager is None:
-        print(f"Creating new ConversationManager for lesson: {selected_lesson}")
-        convo_manager = ConversationManager(lesson_id=selected_lesson)
+        print(f"Creating new ConversationManager")
+        convo_manager = ConversationManager()
         # Initial message for the survey
         initial_survey_message = convo_manager.survey_state['bot_message']
         chat_history.append((None, initial_survey_message))
-        return None, chat_history, convo_manager, "", "", "", gr.update(visible=True), gr.update(visible=False)
+        return None, chat_history, convo_manager, "", "", "", "", gr.update(visible=True), gr.update(visible=False)
 
     user_text = ""
     ai_audio_reply = None
     if convo_manager.survey_state['stage'] != 'complete':
         user_text = user_input_text
         if not user_text:
-            return None, chat_history, convo_manager, "N/A", "N/A", "", gr.update(visible=True), gr.update(visible=False)
+            return None, chat_history, convo_manager, "N/A", "N/A", "", "", gr.update(visible=True), gr.update(visible=False)
     else:
         user_text = audio_input(audio_in)
         if not user_text:
-            return None, chat_history, convo_manager, "N/A", "N/A", "", gr.update(visible=False), gr.update(visible=True)
+            return None, chat_history, convo_manager, "N/A", "N/A", "", "", gr.update(visible=False), gr.update(visible=True)
 
     response = await convo_manager.chat(user_text)
     ai_text_reply = response.get('reply', "I'm sorry, I couldn't generate a response.")
@@ -40,19 +35,17 @@ async def chat_interface(user_input_text, audio_in, chat_history, convo_manager,
     if convo_manager.survey_state['stage'] == 'complete':
         ai_audio_reply = audio_output(ai_text_reply, convo_manager.cefr_level)
         chat_history.append((user_text, ai_text_reply))
-        return ai_audio_reply, chat_history, convo_manager, feedback.get('correction', ''), feedback.get('explanation', '¡Buen trabajo!'), convo_manager.cefr_level, gr.update(visible=False), gr.update(visible=True)
+        return ai_audio_reply, chat_history, convo_manager, feedback.get('correction', ''), feedback.get('explanation', '¡Buen trabajo!'), convo_manager.cefr_level, convo_manager.scenario_description, gr.update(visible=False), gr.update(visible=True)
     else:
         chat_history.append((user_text, ai_text_reply))
-        return None, chat_history, convo_manager, "", "", "", gr.update(visible=True), gr.update(visible=False)
+        return None, chat_history, convo_manager, "", "", "", "", gr.update(visible=True), gr.update(visible=False)
 
 def clear_chat():
     """Resets all UI components and the conversation state."""
     print("Clearing chat state.")
-    return None, None, None, "N/A", "N/A", "", gr.update(visible=True), gr.update(visible=False)
+    return None, None, None, "N/A", "N/A", "", "", gr.update(visible=True), gr.update(visible=False)
 
-def on_lesson_change():
-    """Handler to clear chat when a new lesson is selected."""
-    return clear_chat()
+
 
 with gr.Blocks(theme=gr.themes.Soft(), title="Voice-Based Language Companion") as demo:
     convo_manager_state = gr.State(value=None)
@@ -60,11 +53,7 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Voice-Based Language Companion") a
 
     with gr.Row():
         with gr.Column(scale=2):
-            lesson_selector = gr.Dropdown(
-                choices=list(LESSON_CONFIG.keys()),
-                label="Select a Lesson",
-                value="coffee_shop"
-            )
+            scenario_display = gr.Textbox(label="Roleplay Scenario", interactive=False, lines=3)
             chatbot = gr.Chatbot(label="Conversation Log", height=400, bubble_full_width=False)
             user_input_text = gr.Textbox(label="Type your answer here (for survey)", visible=True)
             audio_in = gr.Audio(sources=["microphone"], type="filepath", label="Speak Here (for roleplay)", visible=False)
@@ -79,27 +68,23 @@ with gr.Blocks(theme=gr.themes.Soft(), title="Voice-Based Language Companion") a
 
     user_input_text.submit(
         fn=chat_interface,
-        inputs=[user_input_text, audio_in, chatbot, convo_manager_state, lesson_selector],
-        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
+        inputs=[user_input_text, audio_in, chatbot, convo_manager_state],
+        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, scenario_display, user_input_text, audio_in]
     )
     
     audio_in.change(
         fn=chat_interface,
-        inputs=[user_input_text, audio_in, chatbot, convo_manager_state, lesson_selector],
-        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
+        inputs=[user_input_text, audio_in, chatbot, convo_manager_state],
+        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, scenario_display, user_input_text, audio_in]
     )
     
     clear_button.click(
         fn=clear_chat,
         inputs=[],
-        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
+        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, scenario_display, user_input_text, audio_in]
     )
     
-    lesson_selector.change(
-        fn=on_lesson_change,
-        inputs=[],
-        outputs=[audio_out, chatbot, convo_manager_state, correction_box, explanation_box, cefr_level_display, user_input_text, audio_in]
-    )
+    
 
 if __name__ == "__main__":
     nest_asyncio.apply()
