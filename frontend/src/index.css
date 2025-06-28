@@ -8,7 +8,7 @@ body {
   font-weight: 400; /* Default to regular */
   font-style: normal;
   @apply bg-white text-black; /* Light mode */
-  @apply dark:bg-gray-900 dark:text-white; /* Dark mode */
+  @apply dark:bg-black dark:text-white; /* Dark mode - Changed from gray-900 */
 }
 
 /* Provided Space Mono classes */

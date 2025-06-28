@@ -2,9 +2,9 @@ import React from 'react';
 
 const Home = () => {
   return (
-    <div>
-      <h1>Welcome to the Home Page</h1>
-    </div>
+    <p className="space-mono-regular text-center mt-4">
+      Welcome to the Home Page
+    </p>
   );
 }
 

@@ -1,89 +1,68 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect } from "react";
 import { BrowserRouter as Router, Routes, Route, useLocation } from "react-router-dom";
 import Home from "./pages/Home";
-import Navbar from "./pages/Navbar";
+import Navbar from "./pages/Navbar"; // For homepage
+import MinimalNavbar from "./pages/MinimalNavbar"; // For other pages
 import Login from "./pages/Login";
 import Survey from "./pages/Survey";
-import Roleplay from "./pages/Roleplay";
-import Chains from "./pages/Chains";
 import BlurText from "./components/BlurText";
-import CustomNavbar from "./pages/CustomNavbar";
-import ClickSpark from "./components/ClickSpark"; // Import the ClickSpark component
-import Aurora from "./components/Aurora"; // Import the Aurora component
+import ClickSpark from "./components/ClickSpark";
 
 const AppContent = () => {
-  const [theme, setTheme] = useState('light');
   const location = useLocation();
 
-  const toggleTheme = () => {
-    const newTheme = theme === 'light' ? 'dark' : 'light';
-    setTheme(newTheme);
-    if (newTheme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  };
+  useEffect(() => {
+    // Set dark theme globally and permanently for the new design
+    document.documentElement.classList.add('dark');
+    document.documentElement.style.backgroundColor = '#000'; // Ensure body bg is black
+  }, []);
 
   const handleAnimationComplete = () => {
     console.log('RE-LEARN animation completed!');
   };
 
-  useEffect(() => {
-    if (window.matchMedia('(prefers-color-scheme: dark)').matches) {
-      setTheme('dark');
-      document.documentElement.classList.add('dark');
-    }
-  }, []);
+  const isHomePage = location.pathname === '/';
 
   return (
-    <div className="relative w-full min-h-screen" style={{ overflow: 'hidden' }}>
-      <Aurora
-        colorStops={theme === 'dark' ? ["#3A29FF", "#FF94B4", "#FF3232"] : ["#5227FF", "#7cff67", "#5227FF"]}
-        amplitude={1.0}
-        blend={0.5}
-        speed={0.5}
-        className="absolute top-0 left-0 z-0"
-      />
+    // ClickSpark needs a relative parent
+    <div className="relative min-h-screen"> 
       <ClickSpark
-        sparkColor={theme === 'dark' ? '#38bdf8' : '#0ea5e9'}
+        sparkColor={'#38bdf8'}
         sparkSize={10}
         sparkRadius={15}
         sparkCount={8}
         duration={400}
       >
-        <div className={`font-space-mono min-h-screen flex flex-col ${theme === 'dark' ? 'dark' : ''} z-10 relative`}>
-          {location.pathname === '/survey' ? (
-            <CustomNavbar theme={theme} toggleTheme={toggleTheme} />
-          ) : (
-            <Navbar theme={theme} toggleTheme={toggleTheme} />
-          )}
-          <Routes>
-            <Route
-              path="/"
-              element={
-                <div className="flex-1 flex flex-col items-center justify-center pt-28">
-                  <div className="text-center mt-[-110vh]">
-                    <p className="space-mono-regular text-lg">Start learning with</p>
-                    <BlurText
-                      text="RE-LEARN"
-                      delay={150}
-                      animateBy="words"
-                      direction="top"
-                      onAnimationComplete={handleAnimationComplete}
-                      className="space-mono-bold text-8xl"
-                    />
+        <div className="font-space-mono min-h-screen flex flex-col bg-black text-white">
+          {isHomePage ? <Navbar /> : <MinimalNavbar />}
+          
+          <main className="flex-1 flex flex-col w-full">
+            <Routes>
+              <Route
+                path="/"
+                element={
+                  // This div handles centering for the homepage content
+                  <div className="flex-1 flex flex-col items-center justify-center text-center">
+                    <div>
+                      <p className="space-mono-regular text-lg">Start learning with</p>
+                      <BlurText
+                        text="RE-LEARN"
+                        delay={150}
+                        animateBy="words"
+                        direction="top"
+                        onAnimationComplete={handleAnimationComplete}
+                        className="space-mono-bold text-8xl"
+                      />
+                      <Home />
+                    </div>
                   </div>
-                  <p className="space-mono-regular-italic"></p>
-                  <Home />
-                </div>
-              }
-            />
-            <Route path="/login" element={<Login theme={theme} />} />
-            <Route path="/survey" element={<Survey theme={theme} />} />
-            <Route path="/roleplay" element={<Roleplay theme={theme} />} />
-            <Route path="/chains" element={<Chains />} />
-          </Routes>
+                }
+              />
+              {/* Page components now render directly without extra wrappers */}
+              <Route path="/login" element={<Login />} />
+              <Route path="/survey" element={<Survey />} />
+            </Routes>
+          </main>
         </div>
       </ClickSpark>
     </div>
