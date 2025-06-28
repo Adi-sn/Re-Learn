@@ -4,6 +4,8 @@ import Home from "./pages/Home";
 import Navbar from "./pages/Navbar";
 import Login from "./pages/Login";
 import Survey from "./pages/Survey";
+import Roleplay from "./pages/Roleplay";
+import Chains from "./pages/Chains";
 import BlurText from "./components/BlurText";
 import CustomNavbar from "./pages/CustomNavbar";
 import ClickSpark from "./components/ClickSpark"; // Import the ClickSpark component
@@ -79,6 +81,8 @@ const AppContent = () => {
             />
             <Route path="/login" element={<Login theme={theme} />} />
             <Route path="/survey" element={<Survey theme={theme} />} />
+            <Route path="/roleplay" element={<Roleplay theme={theme} />} />
+            <Route path="/chains" element={<Chains />} />
           </Routes>
         </div>
       </ClickSpark>
