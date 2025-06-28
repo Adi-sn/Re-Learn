@@ -7,49 +7,47 @@ An AI-powered conversational language assistant for immersive, scenario-based le
 ![TailwindCSS](https://img.shields.io/badge/tailwindcss-%2338B2AC.svg?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![FastAPI](https://img.shields.io/badge/FastAPI-005571?style=for-the-badge&logo=fastapi)
 ![Python](https://img.shields.io/badge/python-3670A0?style=for-the-badge&logo=python&logoColor=ffdd54)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)
 
 ---
 
-## Key Features
+##  Key Features
 
--   **Adaptive CEFR Assessment**: A dynamic, multi-step evaluation to accurately determine the user's English proficiency level (A1 to C2).
+-   **Adaptive CEFR Assessment**: A dynamic, multi-step evaluation to accurately determine a user's English proficiency level (A1 to C2).
 -   **AI-Generated Scenarios**: Generates unique role-playing scenarios tailored to the user's assessed language level.
--   **Interactive Voice Role-Play**: Engage in spoken conversations with an AI character. The backend supports both text and voice input.
--   **Real-Time Feedback**: Get instant, constructive feedback on your spoken or typed responses, including corrections and explanations.
+-   **Interactive Voice Role-Play**: Engage in spoken conversations with an AI character, with both text and voice input supported.
+-   **Real-Time Feedback**: Get instant, constructive feedback on your responses, including corrections and explanations.
 -   **Adaptive Companion**: The AI's language complexity and speech speed adjust dynamically based on the user's CEFR level.
--   **Modern Frontend**: A sleek, responsive interface built with React, Vite, and Tailwind CSS, featuring beautiful animations like an Aurora background effect.
+-   **Modern Frontend**: A sleek, responsive, dark-mode interface built with React, Vite, and Tailwind CSS, featuring beautiful animations.
 -   **Robust Backend**: Powered by FastAPI and LangChain, orchestrating multiple AI services for a seamless experience.
 
 ##  Tech Stack
 
-| Area      | Technology                                                                                                  |
-| :-------- | :---------------------------------------------------------------------------------------------------------- |
-| **Backend** | **Python**, **FastAPI**, **LangChain**, **Google Gemini**, **ElevenLabs** (TTS), **Sarvam AI** (STT), **Uvicorn** |
-| **Frontend**  | **React**, **Vite**, **Tailwind CSS**, **Material-UI (MUI)**, **Framer Motion**, **OGL** (WebGL), **Axios**    |
+| Area       | Technology                                                                                                       |
+| :--------- | :--------------------------------------------------------------------------------------------------------------- |
+| **Backend**  | **Python**, **FastAPI**, **LangChain**, **Google Gemini**, **ElevenLabs** (TTS), **Sarvam AI** (STT), **Uvicorn**      |
+| **Frontend** | **React**, **Vite**, **Tailwind CSS**, **Material-UI (MUI)**, **Framer Motion**, **OGL** (WebGL), **Axios**        |
 
-## Project Structure
+##  Project Structure
 
 The project is organized into two main parts: a `frontend` React application and a `backend` FastAPI server.
-Use code with caution.
-Markdown
-/
+```
 ├── backend/
 │ ├── chains.py # Core LangChain logic, prompts, and model integrations.
-│ ├── survey.py # Logic for the initial CEFR assessment.
+│ ├── survey.py # Logic for the CEFR assessment.
 │ ├── main.py # FastAPI application, API endpoints, and session management.
 │ ├── requirements.txt # Backend Python dependencies.
 │ └── .env.example # Template for environment variables (you should create this).
 └── frontend/
 ├── src/
-│ ├── components/ # Reusable React components (Aurora, BlurText, etc.).
-│ ├── pages/ # Main pages for the application (Survey, Roleplay, etc.).
+│ ├── components/ # Reusable React components (Aurora, BlurText, ClickSpark).
+│ ├── pages/ # Main pages for the application (Home, Survey, Login).
 │ ├── App.jsx # Main app component with routing.
 │ └── main.jsx # Entry point for the React application.
 ├── package.json # Frontend dependencies and scripts.
 └── vite.config.js # Vite configuration with proxy to the backend.
+```
 Generated code
-##  Getting Started
+## 🏁 Getting Started
 
 Follow these instructions to set up and run the project locally.
 
@@ -90,8 +88,7 @@ pip install fastapi uvicorn python-multipart "langchain>=0.1.0" langchain-google
 # SARVAM_API_KEY="your_sarvam_api_key"
 
 # 5. Run the backend server
-uvicorn main:app --host 0.0.0.0 --port 8000 --reload
-Use code with caution.
+uvicorn main:app --reload
 The backend server will now be running on http://localhost:8000.
 2. Frontend Setup
 In a new terminal, set up and run the React client.
@@ -104,26 +101,27 @@ npm install
 
 # 3. Run the frontend development server
 npm run dev
-Use code with caution.
+
 Bash
 The frontend will now be available at http://localhost:5173. The Vite server is configured to automatically proxy API requests to the backend.
 🕹️ How It Works
-The user journey is designed to be simple and effective:
-Start Assessment: The user clicks the "DEMO" button to begin the proficiency assessment.
-Sequential Questions: The AI asks a series of questions, each corresponding to a CEFR level (A1 -> C2).
+The user journey is designed as a single, continuous experience within the "Demo" page:
+Start Assessment: The user navigates to the /survey page (via the "Demo" link), which automatically starts a new session.
+Sequential Questions: The AI asks a series of text-based questions, each corresponding to a CEFR level (A1 -> C2).
 Holistic Evaluation: After all questions are answered, the backend analyzes the entire transcript to determine a final, accurate CEFR level.
-Scenario Generation: A custom role-play scenario is generated based on the user's level.
-Immersive Role-Play: The user is transitioned to the main role-play screen, where they can interact with the AI companion using their voice.
-Continuous Feedback Loop: With each turn, the user receives an audio reply from the AI and sees live feedback on their performance.
-📸 Screenshots
-(This is a great place to add screenshots or a GIF of your application in action!)
+Transition to Role-Play: The UI seamlessly transitions to the role-play stage. The chat history is maintained, and a right-hand panel appears with the AI-generated scenario and feedback sections.
+Immersive Voice Interaction: The user can now interact with the AI companion using their voice. The text input is replaced by a microphone button.
+Continuous Feedback Loop: With each turn, the user receives an audio reply from the AI, and the feedback panel is updated with live corrections and explanations.
+
 Assessment Page
 ![alt text](https://via.placeholder.com/600x400.png?text=Assessment+UI)
 Role-Play Interface
 ![alt text](https://via.placeholder.com/600x400.png?text=Role-Play+UI)
+
 🔮 Future Improvements
 User Authentication: Implement the Login/Sign Up functionality.
 Database Integration: Store user progress, conversation history, and performance metrics.
-Expanded Scenarios: Add a wider variety of role-play scenarios and AI personas.
+Custom Scenarios: Allow users to create or choose their own role-play scenarios.
 Performance Dashboard: Create a dashboard for users to track their improvement over time.
+Real-life Monitoring: Introduce a mode where the AI can "listen in" on real-world practice conversations (with consent) and provide after-the-fact feedback.
 UI/UX Refinements: Further polish the user interface and overall experience.
