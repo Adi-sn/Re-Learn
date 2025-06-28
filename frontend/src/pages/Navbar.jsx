@@ -62,6 +62,7 @@ const Navbar = ({ theme, toggleTheme }) => {
               fontWeight: 'bold',
               '&:hover': { bgcolor: '#0ea5e9' }, // Tailwind sky-500
             }}
+            onClick={() => navigate('/survey')}
           >
             DEMO
           </Button>
