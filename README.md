@@ -46,8 +46,8 @@ The project is organized into two main parts: a `frontend` React application and
 ├── package.json # Frontend dependencies and scripts.
 └── vite.config.js # Vite configuration with proxy to the backend.
 ```
-Generated code
-## 🏁 Getting Started
+
+##  Getting Started
 
 Follow these instructions to set up and run the project locally.
 
@@ -92,12 +92,16 @@ uvicorn main:app --reload
 The backend server will now be running on http://localhost:8000.
 2. Frontend Setup
 In a new terminal, set up and run the React client.
-Generated bash
+
 # 1. Navigate to the frontend directory
 cd ../frontend
 
 # 2. Install npm dependencies
 npm install
+npm install ogl
+npm install -D tailwindcss postcss autoprefixer
+npm install framer-motion
+npm install react react-dom react-router-dom @mui/material @emotion/react @emotion/styled 
 
 # 3. Run the frontend development server
 npm run dev
@@ -112,11 +116,6 @@ Holistic Evaluation: After all questions are answered, the backend analyzes the 
 Transition to Role-Play: The UI seamlessly transitions to the role-play stage. The chat history is maintained, and a right-hand panel appears with the AI-generated scenario and feedback sections.
 Immersive Voice Interaction: The user can now interact with the AI companion using their voice. The text input is replaced by a microphone button.
 Continuous Feedback Loop: With each turn, the user receives an audio reply from the AI, and the feedback panel is updated with live corrections and explanations.
-
-Assessment Page
-![alt text](https://via.placeholder.com/600x400.png?text=Assessment+UI)
-Role-Play Interface
-![alt text](https://via.placeholder.com/600x400.png?text=Role-Play+UI)
 
 🔮 Future Improvements
 User Authentication: Implement the Login/Sign Up functionality.
