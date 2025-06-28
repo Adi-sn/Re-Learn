@@ -9,8 +9,36 @@ import MicIcon from '@mui/icons-material/Mic';
 import StopIcon from '@mui/icons-material/Stop';
 import CircularProgress from '@mui/material/CircularProgress';
 
+// Helper component to render simple markdown (bold text)
+const FormattedMessage = ({ text }) => {
+  if (!text) return null;
+  const parts = text.split(/(\*\*.*?\*\*)/g);
+  return (
+    <>
+      {parts.map((part, index) => {
+        if (part.startsWith('**') && part.endsWith('**')) {
+          return <strong key={index}>{part.slice(2, -2)}</strong>;
+        }
+        return part;
+      })}
+    </>
+  );
+};
+
+// DESIGN CHANGE: Reusable component for the info panel to match the new screenshot
+const InfoSection = ({ label, value, valueColor = 'text-white' }) => (
+  <Box className="mb-6">
+    <Typography variant="overline" display="block" gutterBottom className="text-gray-400" sx={{ lineHeight: 1.5 }}>
+      {label}
+    </Typography>
+    <Typography variant="body1" className={`${valueColor} font-space-mono`}>
+      {value || '...'}
+    </Typography>
+  </Box>
+);
+
+
 const Survey = () => {
-  // All state and logic hooks remain the same...
   const [sessionId, setSessionId] = useState(null);
   const [messages, setMessages] = useState([]);
   const [stage, setStage] = useState('loading');
@@ -60,22 +88,36 @@ const Survey = () => {
       }
   };
 
+  // --- BUG FIX: This logic is now more robust ---
   const handleResponse = (data) => {
+    // Always add the new bot message
     setMessages(prev => [...prev, { text: data.reply, sender: 'bot' }]);
-    setStage(data.stage);
-    if (data.stage === 'complete') {
+    
+    // If the stage is changing to 'complete' for the first time
+    if (data.stage === 'complete' && stage !== 'complete') {
         setCefrLevel(data.cefr_level || '');
         setScenario(data.scenario_description || 'Scenario details will appear here.');
-        if (data.feedback && data.feedback.correction) {
+        // Set initial state for the feedback panel
+        setCorrection('');
+        setExplanation('Your live feedback will appear here.');
+    }
+    // If we are already in the 'complete' stage (i.e., a subsequent roleplay turn)
+    else if (data.stage === 'complete') {
+        if (data.feedback) {
+            // Update with new feedback from the backend
             setCorrection(data.feedback.correction);
             setExplanation(data.feedback.explanation);
-        } else {
-            setCorrection('');
-            setExplanation('Great job!');
         }
+    }
+    
+    // Update stage at the end to correctly track transitions
+    setStage(data.stage);
+    
+    if (data.audio_url) {
         playAudio(data.audio_url);
     }
   };
+
 
   const submitData = async (formData) => {
     setIsLoading(true);
@@ -135,8 +177,8 @@ const Survey = () => {
         recorder.start();
         setIsRecording(true);
     } catch (err) {
-        console.error("Error accessing microphone:", err);
-        setMessages(prev => [...prev, { text: 'Could not access microphone. Please check permissions.', sender: 'bot' }]);
+      console.error("Error accessing microphone:", err);
+      setMessages(prev => [...prev, { text: 'Could not access microphone. Please check permissions.', sender: 'bot' }]);
     }
   };
 
@@ -173,7 +215,7 @@ const Survey = () => {
           placeholder="Type your answer..." disabled={isLoading || stage === 'loading' || stage === 'error'}
           sx={{
             '& .MuiOutlinedInput-root': {
-              fontFamily: '"Space Mono", monospace', color: 'white', backgroundColor: '#1f2937', // bg-gray-800
+              fontFamily: '"Space Mono", monospace', color: 'white', backgroundColor: '#1f2937',
               '& fieldset': { borderColor: 'rgba(255, 255, 255, 0.23)' },
               '&:hover fieldset': { borderColor: 'rgba(255, 255, 255, 0.5)' },
               '&.Mui-focused fieldset': { borderColor: '#38bdf8' },
@@ -194,18 +236,18 @@ const Survey = () => {
 
   return (
     <div className="font-space-mono min-h-screen flex flex-col bg-black text-white overflow-hidden">
-      <div className="flex-1 container mx-auto flex flex-col md:flex-row items-start justify-center p-4 pt-24 gap-6">
+      <div className="flex-1 container mx-auto flex flex-col md:flex-row items-start justify-center p-4 pt-20 gap-6">
         <Box className="flex flex-col w-full md:flex-1 h-[85vh]">
-          <Typography variant="h4" className="font-space-mono space-mono-bold mb-4 text-center">
+          <Typography variant="h4" className="space-mono-bold mb-4 text-center" sx={{ fontFamily: '"Space Mono", monospace' }}>
             {stage === 'complete' ? 'Roleplay Session' : 'Language Assessment'}
           </Typography>
-          <Box className="bg-gray-900 p-4 rounded-lg w-full flex-grow flex flex-col overflow-y-auto">
+          <Box className="bg-transparent border border-gray-700 p-4 rounded-lg w-full flex-grow flex flex-col overflow-y-auto">
             {messages.map((message, index) => (
               <Box key={index}
-                className={`my-2 p-3 rounded-lg max-w-[80%] ${message.sender === 'bot' ? 'bg-gray-800 self-start' : 'bg-sky-900 self-end'}`}
+                className={`my-2 p-4 rounded-lg max-w-[85%] ${message.sender === 'bot' ? 'bg-gray-800 self-start' : 'bg-sky-900 self-end'}`}
                 sx={{ fontFamily: '"Space Mono", monospace', whiteSpace: 'pre-wrap', wordBreak: 'break-word' }}
               >
-                {message.text}
+                <FormattedMessage text={message.text} />
               </Box>
             ))}
             <div ref={messagesEndRef} />
@@ -213,25 +255,19 @@ const Survey = () => {
           <div className="flex justify-center w-full">{renderInput()}</div>
         </Box>
         {stage === 'complete' && (
-          <Box className="bg-gray-900 p-6 rounded-lg w-full md:w-96 h-auto md:h-[85vh] mt-4 md:mt-0 flex flex-col shrink-0">
-            <Typography variant="h6" className="font-space-mono space-mono-bold mb-4 border-b border-gray-700 pb-2">Session Info</Typography>
-            <Box className="mb-6">
-              <Typography variant="overline" display="block" gutterBottom className="text-gray-400">CEFR Level</Typography>
-              <Typography variant="body1" className="font-space-mono space-mono-bold text-lg text-sky-400">{cefrLevel}</Typography>
-            </Box>
-            <Box className="mb-6">
-              <Typography variant="overline" display="block" gutterBottom className="text-gray-400">Scenario</Typography>
-              <Typography variant="body2">{scenario}</Typography>
-            </Box>
-            <Typography variant="h6" className="font-space-mono space-mono-bold mt-4 mb-4 border-b border-gray-700 pb-2">Live Feedback</Typography>
-            <Box className="mb-6">
-              <Typography variant="overline" display="block" gutterBottom className="text-gray-400">Correction</Typography>
-              <Typography variant="body2" className="text-green-400">{correction || '...'}</Typography>
-            </Box>
-            <Box>
-              <Typography variant="overline" display="block" gutterBottom className="text-gray-400">Explanation</Typography>
-              <Typography variant="body2">{explanation || '...'}</Typography>
-            </Box>
+           // --- DESIGN CHANGE: This whole panel is updated to match the screenshot ---
+          <Box className="bg-transparent border border-gray-700 p-8 rounded-lg w-full md:w-96 h-auto md:h-[85vh] mt-4 md:mt-0 flex flex-col shrink-0">
+            <Typography variant="h5" component="h2" className="mb-4 pb-2 border-b border-gray-700" sx={{ fontWeight: 600 }}>
+              Session Info
+            </Typography>
+            <InfoSection label="CEFR Level" value={cefrLevel} valueColor="text-sky-400" />
+            <InfoSection label="Scenario" value={scenario} />
+            
+            <Typography variant="h5" component="h2" className="mt-4 mb-4 pb-2 border-b border-gray-700" sx={{ fontWeight: 600 }}>
+              Live Feedback
+            </Typography>
+            <InfoSection label="Correction" value={correction} valueColor="text-green-400" />
+            <InfoSection label="Explanation" value={explanation} />
           </Box>
         )}
       </div>
