@@ -124,3 +124,7 @@ Custom Scenarios: Allow users to create or choose their own role-play scenarios.
 Performance Dashboard: Create a dashboard for users to track their improvement over time.
 Real-life Monitoring: Introduce a mode where the AI can "listen in" on real-world practice conversations (with consent) and provide after-the-fact feedback.
 UI/UX Refinements: Further polish the user interface and overall experience.
+
+![image](https://github.com/user-attachments/assets/ab28663b-c0d9-46eb-a257-0bcbc21a7369)
+
+![image](https://github.com/user-attachments/assets/4154a133-2a60-49e5-96bb-35573464dbf7)
